@@ -16,6 +16,9 @@ cdef class JavaObject(object):
 
 
 cdef class JavaClassStorage:
+    # dangerous to store JNIEnv in threaded scenario
+    # will work for instantiating thread but fail if another thread tries to use it
+    # can j_env be stored in thread-local?
     cdef JNIEnv *j_env
     cdef jclass j_cls
 
@@ -51,6 +54,9 @@ class MetaJavaClass(type):
         cdef jclass *interfaces
         cdef jobject *jargs
 
+        # dangerous to store JNIEnv in threaded scenario
+        # will work for instantiating thread but fail if another thread tries to use it
+        # can j_env be stored in thread-local?
         jcs.j_env = get_jnienv()
         if jcs.j_env == NULL:
             raise JavaException('Unable to get the JNI Environment')
@@ -131,6 +137,9 @@ cdef class JavaClass(object):
     '''Main class to do introspection.
     '''
 
+    # dangerous to store JNIEnv in threaded scenario
+    # will work for instantiating thread but fail if another thread tries to use it
+    # can j_env be stored in thread-local?
     cdef JNIEnv *j_env
     cdef jclass j_cls
     cdef LocalRef j_self
@@ -235,6 +244,9 @@ cdef class JavaClass(object):
         cdef JavaMethod jm
         cdef JavaMultipleMethod jmm
         cdef PythonMethod pm
+        # dangerous to store JNIEnv in threaded scenario
+        # will work for instantiating thread but fail if another thread tries to use it
+        # can j_env be stored in thread-local?
         for name, value in self.__class__.__dict__.iteritems():
             if isinstance(value, JavaMethod):
                 jm = value
@@ -260,6 +272,9 @@ cdef class JavaClass(object):
             jf = value
             if jf.is_static:
                 continue
+            # dangerous to store JNIEnv in threaded scenario
+            # will work for instantiating thread but fail if another thread tries to use it
+            # can j_env be stored in thread-local?
             jf.set_resolve_info(self.j_env, self.j_cls, self.j_self,
                 name, self.__javaclass__)
 
@@ -273,6 +288,9 @@ cdef class JavaClass(object):
 
 cdef class JavaField(object):
     cdef jfieldID j_field
+    # dangerous to store JNIEnv in threaded scenario
+    # will work for instantiating thread but fail if another thread tries to use it
+    # can j_env be stored in thread-local?
     cdef JNIEnv *j_env
     cdef jclass j_cls
     cdef LocalRef j_self

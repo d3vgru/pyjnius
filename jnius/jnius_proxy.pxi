@@ -17,6 +17,9 @@ cdef class PythonJavaClass(object):
     '''
     Base class to create a java class from python
     '''
+    # dangerous to store JNIEnv in threaded scenario
+    # will work for instantiating thread but fail if another thread tries to use it
+    # can j_env be stored in thread-local?
     cdef JNIEnv *j_env
     cdef jclass j_cls
     cdef public object j_self
@@ -27,7 +30,7 @@ cdef class PythonJavaClass(object):
         self.j_self = None
 
     def __init__(self, *args, **kwargs):
-        self.j_self = create_proxy_instance(self.j_env, self,
+        self.j_self = create_proxy_instance(get_jnienv(), self,
             self.__javainterfaces__)
 
         # discover all the java method implemented
@@ -71,10 +74,14 @@ cdef class PythonJavaClass(object):
 
         return py_method(*args)
 
-cdef jobject invoke0(JNIEnv *j_env, jobject j_this, jobject j_proxy, jobject
+cdef jobject invoke0(JNIEnv *j_env_hide, jobject j_this, jobject j_proxy, jobject
         j_method, jobjectArray args) with gil:
     from .reflect import get_signature, Method
 
+    # dangerous to store JNIEnv in threaded scenario
+    # will work for instantiating thread but fail if another thread tries to use it
+    # get a fresh one to be on the safe side
+    cdef JNIEnv *j_env = get_jnienv()
     # get the python object
     cdef jfieldID ptrField = j_env[0].GetFieldID(j_env,
         j_env[0].GetObjectClass(j_env, j_this), "ptr", "J")

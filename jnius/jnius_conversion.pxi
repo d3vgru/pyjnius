@@ -1,4 +1,6 @@
-cdef void release_args(JNIEnv *j_env, tuple definition_args, jvalue *j_args, args) except *:
+cdef void release_args(JNIEnv *j_env_hide, tuple definition_args, jvalue *j_args, args) except *:
+    # get a fresh JNIEnv in case we're threaded
+    cdef JNIEnv *j_env = get_jnienv()
     # do the conversion from a Python object to Java from a Java definition
     cdef JavaObject jo
     cdef JavaClass jc
@@ -15,7 +17,9 @@ cdef void release_args(JNIEnv *j_env, tuple definition_args, jvalue *j_args, arg
             j_env[0].DeleteLocalRef(j_env, j_args[index].l)
 
 
-cdef void populate_args(JNIEnv *j_env, tuple definition_args, jvalue *j_args, args) except *:
+cdef void populate_args(JNIEnv *j_env_hide, tuple definition_args, jvalue *j_args, args) except *:
+    # get a fresh JNIEnv in case we're threaded
+    cdef JNIEnv *j_env = get_jnienv()
     # do the conversion from a Python object to Java from a Java definition
     cdef JavaClassStorage jcs
     cdef JavaObject jo
@@ -83,7 +87,9 @@ cdef void populate_args(JNIEnv *j_env, tuple definition_args, jvalue *j_args, ar
                     j_env, argtype[1:], py_arg)
 
 
-cdef convert_jobject_to_python(JNIEnv *j_env, bytes definition, jobject j_object):
+cdef convert_jobject_to_python(JNIEnv *j_env_hide, bytes definition, jobject j_object):
+    # get a fresh JNIEnv in case we're threaded
+    cdef JNIEnv *j_env = get_jnienv()
     # Convert a Java Object to a Python object, according to the definition.
     # If the definition is a java/lang/Object, then try to determine what is it
     # exactly.
@@ -160,7 +166,9 @@ cdef convert_jobject_to_python(JNIEnv *j_env, bytes definition, jobject j_object
     return ret_jc
 
 
-cdef convert_jarray_to_python(JNIEnv *j_env, definition, jobject j_object):
+cdef convert_jarray_to_python(JNIEnv *j_env_hide, definition, jobject j_object):
+    # get a fresh JNIEnv in case we're threaded
+    cdef JNIEnv *j_env = get_jnienv()
     cdef jboolean iscopy
     cdef jboolean *j_booleans
     cdef jbyte *j_bytes
@@ -260,7 +268,9 @@ cdef convert_jarray_to_python(JNIEnv *j_env, definition, jobject j_object):
 
     return ret
 
-cdef jobject convert_python_to_jobject(JNIEnv *j_env, definition, obj) except *:
+cdef jobject convert_python_to_jobject(JNIEnv *j_env_hide, definition, obj) except *:
+    # get a fresh JNIEnv in case we're threaded
+    cdef JNIEnv *j_env = get_jnienv()
     cdef jobject retobject, retsubobject
     cdef jclass retclass
     cdef jmethodID redmidinit
@@ -376,7 +386,9 @@ cdef jobject convert_python_to_jobject(JNIEnv *j_env, definition, obj) except *:
     return retobject
 
 
-cdef jobject convert_pyarray_to_java(JNIEnv *j_env, definition, pyarray) except *:
+cdef jobject convert_pyarray_to_java(JNIEnv *j_env_hide, definition, pyarray) except *:
+    # get a fresh JNIEnv in case we're threaded
+    cdef JNIEnv *j_env = get_jnienv()
     cdef jobject ret = NULL
     cdef int array_size = len(pyarray)
     cdef int i
