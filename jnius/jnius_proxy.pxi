@@ -74,14 +74,10 @@ cdef class PythonJavaClass(object):
 
         return py_method(*args)
 
-cdef jobject invoke0(JNIEnv *j_env_hide, jobject j_this, jobject j_proxy, jobject
+cdef jobject invoke0(JNIEnv *j_env, jobject j_this, jobject j_proxy, jobject
         j_method, jobjectArray args) with gil:
     from .reflect import get_signature, Method
 
-    # dangerous to store JNIEnv in threaded scenario
-    # will work for instantiating thread but fail if another thread tries to use it
-    # get a fresh one to be on the safe side
-    cdef JNIEnv *j_env = get_jnienv()
     # get the python object
     cdef jfieldID ptrField = j_env[0].GetFieldID(j_env,
         j_env[0].GetObjectClass(j_env, j_this), "ptr", "J")
@@ -90,8 +86,9 @@ cdef jobject invoke0(JNIEnv *j_env_hide, jobject j_this, jobject j_proxy, jobjec
 
     # extract the method information
     cdef JavaClass method = Method(noinstance=True)
-    cdef LocalRef ref = create_local_ref(j_env, j_method)
-    method.instanciate_from(create_local_ref(j_env, j_method))
+    # FIXME do we need explicit release?
+    cdef GlobalRef ref = create_global_ref(j_env, j_method)
+    method.instanciate_from(ref)
     ret_signature = get_signature(method.getReturnType())
     args_signature = [get_signature(x) for x in method.getParameterTypes()]
 
@@ -113,7 +110,7 @@ cdef jobject invoke0(JNIEnv *j_env_hide, jobject j_this, jobject j_proxy, jobjec
     for index, arg_signature in enumerate(args_signature):
         arg_signature = convert_signature.get(arg_signature, arg_signature)
         j_arg = j_env[0].GetObjectArrayElement(j_env, args, index)
-        py_arg = convert_jobject_to_python(j_env, arg_signature, j_arg)
+        py_arg = convert_jobject_to_python(arg_signature, j_arg)
         py_args.append(py_arg)
 
     # really invoke the python method
@@ -140,7 +137,8 @@ cdef jobject invoke0(JNIEnv *j_env_hide, jobject j_this, jobject j_proxy, jobjec
         jtype = ret_signature
 
     try:
-        return convert_python_to_jobject(j_env, jtype or ret_signature, ret)
+        # FIXME testing global refs -- how to release?
+        return convert_python_to_jobject(jtype or ret_signature, ret)
     except Exception as e:
         traceback.print_exc(e)
 
@@ -160,7 +158,7 @@ cdef create_proxy_instance(JNIEnv *j_env, py_obj, j_interfaces):
     invoke_methods[0].name = 'invoke0'
     invoke_methods[0].signature = '(Ljava/lang/Object;Ljava/lang/reflect/Method;[Ljava/lang/Object;)Ljava/lang/Object;'
     invoke_methods[0].fnPtr = <void *>&invoke0
-    j_env[0].RegisterNatives(j_env, nih.j_cls, <JNINativeMethod *>invoke_methods, 1)
+    j_env[0].RegisterNatives(j_env, nih.j_cls.obj, <JNINativeMethod *>invoke_methods, 1)
 
     # create the proxy and pass it the invocation handler
     classLoader = ClassLoader.getSystemClassLoader()

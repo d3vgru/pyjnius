@@ -1,4 +1,4 @@
-cdef void release_args(JNIEnv *j_env_hide, tuple definition_args, jvalue *j_args, args) except *:
+cdef void release_args(tuple definition_args, jvalue *j_args, args) except *:
     # get a fresh JNIEnv in case we're threaded
     cdef JNIEnv *j_env = get_jnienv()
     # do the conversion from a Python object to Java from a Java definition
@@ -17,7 +17,7 @@ cdef void release_args(JNIEnv *j_env_hide, tuple definition_args, jvalue *j_args
             j_env[0].DeleteLocalRef(j_env, j_args[index].l)
 
 
-cdef void populate_args(JNIEnv *j_env_hide, tuple definition_args, jvalue *j_args, args) except *:
+cdef void populate_args(tuple definition_args, jvalue *j_args, args) except *:
     # get a fresh JNIEnv in case we're threaded
     cdef JNIEnv *j_env = get_jnienv()
     # do the conversion from a Python object to Java from a Java definition
@@ -60,7 +60,7 @@ cdef void populate_args(JNIEnv *j_env_hide, tuple definition_args, jvalue *j_arg
                 j_args[index].l = jo.obj
             elif isinstance(py_arg, MetaJavaClass):
                 jcs = py_arg.__cls_storage
-                j_args[index].l = jcs.j_cls
+                j_args[index].l = jcs.j_cls.obj
             elif isinstance(py_arg, PythonJavaClass):
                 # from python class, get the proxy/python class
                 pc = py_arg
@@ -70,9 +70,9 @@ cdef void populate_args(JNIEnv *j_env_hide, tuple definition_args, jvalue *j_arg
                 j_args[index].l = jc.j_self.obj
             elif isinstance(py_arg, type):
                 jc = py_arg
-                j_args[index].l = jc.j_cls
+                j_args[index].l = jc.j_cls.obj
             elif isinstance(py_arg, (tuple, list)):
-                j_args[index].l = convert_pyarray_to_java(j_env, argtype, py_arg)
+                j_args[index].l = convert_pyarray_to_java(argtype, py_arg)
             else:
                 raise JavaException('Invalid python object for this '
                         'argument. Want {0!r}, got {1!r}'.format(
@@ -84,10 +84,10 @@ cdef void populate_args(JNIEnv *j_env_hide, tuple definition_args, jvalue *j_arg
                         '{0!r}'.format(py_arg))
 
             j_args[index].l = convert_pyarray_to_java(
-                    j_env, argtype[1:], py_arg)
+                    argtype[1:], py_arg)
 
 
-cdef convert_jobject_to_python(JNIEnv *j_env_hide, bytes definition, jobject j_object):
+cdef convert_jobject_to_python(bytes definition, jobject j_object):
     # get a fresh JNIEnv in case we're threaded
     cdef JNIEnv *j_env = get_jnienv()
     # Convert a Java Object to a Python object, according to the definition.
@@ -148,7 +148,7 @@ cdef convert_jobject_to_python(JNIEnv *j_env_hide, bytes definition, jobject j_o
         return ord(j_env[0].CallCharMethod(j_env, j_object, retmeth))
 
     if r[0] == '[':
-        return convert_jarray_to_python(j_env, r[1:], j_object)
+        return convert_jarray_to_python(r[1:], j_object)
 
     if r not in jclass_register:
         if r.startswith('$Proxy'):
@@ -162,11 +162,11 @@ cdef convert_jobject_to_python(JNIEnv *j_env_hide, bytes definition, jobject j_o
             ret_jc = autoclass(r.replace('/', '.'))(noinstance=True)
     else:
         ret_jc = jclass_register[r](noinstance=True)
-    ret_jc.instanciate_from(create_local_ref(j_env, j_object))
+    ret_jc.instanciate_from(create_global_ref(j_env, j_object))
     return ret_jc
 
 
-cdef convert_jarray_to_python(JNIEnv *j_env_hide, definition, jobject j_object):
+cdef convert_jarray_to_python(definition, jobject j_object):
     # get a fresh JNIEnv in case we're threaded
     cdef JNIEnv *j_env = get_jnienv()
     cdef jboolean iscopy
@@ -260,7 +260,7 @@ cdef convert_jarray_to_python(JNIEnv *j_env_hide, definition, jobject j_object):
             if j_object_item == NULL:
                 ret.append(None)
                 continue
-            obj = convert_jobject_to_python(j_env, definition, j_object_item)
+            obj = convert_jobject_to_python(definition, j_object_item)
             ret.append(obj)
             j_env[0].DeleteLocalRef(j_env, j_object_item)
     else:
@@ -268,7 +268,7 @@ cdef convert_jarray_to_python(JNIEnv *j_env_hide, definition, jobject j_object):
 
     return ret
 
-cdef jobject convert_python_to_jobject(JNIEnv *j_env_hide, definition, obj) except *:
+cdef jobject convert_python_to_jobject(definition, obj) except *:
     # get a fresh JNIEnv in case we're threaded
     cdef JNIEnv *j_env = get_jnienv()
     cdef jobject retobject, retsubobject
@@ -302,7 +302,7 @@ cdef jobject convert_python_to_jobject(JNIEnv *j_env_hide, definition, obj) exce
             return retobject
         elif isinstance(obj, type):
             jc = obj
-            return jc.j_cls
+            return jc.j_cls.obj
         elif isinstance(obj, JavaClass):
             jc = obj
             check_assignable_from(j_env, jc, definition[1:-1])
@@ -312,16 +312,17 @@ cdef jobject convert_python_to_jobject(JNIEnv *j_env_hide, definition, obj) exce
             return jo.obj
         elif isinstance(obj, MetaJavaClass):
             jcs = obj.__cls_storage
-            return jcs.j_cls
+            return jcs.j_cls.obj
         elif isinstance(obj, PythonJavaClass):
             # from python class, get the proxy/python class
             pc = obj
             # get the java class
             jc = pc.j_self
             # get the localref
+            # FIXME this is actually a global ref
             return jc.j_self.obj
         elif isinstance(obj, (tuple, list)):
-            return convert_pyarray_to_java(j_env, definition, obj)
+            return convert_pyarray_to_java(definition, obj)
         else:
             raise JavaException('Invalid python object for this '
                     'argument. Want {0!r}, got {1!r}'.format(
@@ -340,10 +341,11 @@ cdef jobject convert_python_to_jobject(JNIEnv *j_env_hide, definition, obj) exce
         for index, item in enumerate(obj):
             item_definition = conversions.get(type(item), definition[1:])
             retsubobject = convert_python_to_jobject(
-                    j_env, item_definition, item)
+                    item_definition, item)
             j_env[0].SetObjectArrayElement(j_env, retobject, index,
                     retsubobject)
-        return retobject
+        # FIXME adding global refs
+        return j_env[0].NewGlobalRef(j_env, retobject)
 
     elif definition == 'B':
         retclass = j_env[0].FindClass(j_env, 'java/lang/Byte')
@@ -382,11 +384,12 @@ cdef jobject convert_python_to_jobject(JNIEnv *j_env_hide, definition, obj) exce
 
     assert(retclass != NULL)
     # XXX do we need a globalref or something ?
-    retobject = j_env[0].NewObjectA(j_env, retclass, retmidinit, j_ret)
+    # FIXME testing
+    retobject = j_env[0].NewGlobalRef(j_env, j_env[0].NewObjectA(j_env, retclass, retmidinit, j_ret))
     return retobject
 
 
-cdef jobject convert_pyarray_to_java(JNIEnv *j_env_hide, definition, pyarray) except *:
+cdef jobject convert_pyarray_to_java(definition, pyarray) except *:
     # get a fresh JNIEnv in case we're threaded
     cdef JNIEnv *j_env = get_jnienv()
     cdef jobject ret = NULL
@@ -504,7 +507,7 @@ cdef jobject convert_pyarray_to_java(JNIEnv *j_env_hide, definition, pyarray) ex
             elif isinstance(arg, type):
                 jc = arg
                 j_env[0].SetObjectArrayElement(
-                        j_env, <jobjectArray>ret, i, jc.j_cls)
+                        j_env, <jobjectArray>ret, i, jc.j_cls.obj)
             elif isinstance(arg, JavaObject):
                 jo = arg
                 j_env[0].SetObjectArrayElement(
@@ -515,4 +518,5 @@ cdef jobject convert_pyarray_to_java(JNIEnv *j_env_hide, definition, pyarray) ex
     else:
         raise JavaException('Invalid array definition', definition, pyarray)
 
-    return <jobject>ret
+    # FIXME adding global refs
+    return j_env[0].NewGlobalRef(j_env, <jobject>ret)

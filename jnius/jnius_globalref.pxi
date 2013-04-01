@@ -1,5 +1,5 @@
 
-cdef class LocalRef:
+cdef class GlobalRef:
     cdef jobject obj
     cdef JNIEnv *env
 
@@ -18,8 +18,7 @@ cdef class LocalRef:
         self.obj = env[0].NewGlobalRef(env, obj)
 
 
-cdef LocalRef create_local_ref(JNIEnv *env, jobject obj):
-    cdef LocalRef ret = LocalRef()
+cdef GlobalRef create_global_ref(JNIEnv *env, jobject obj):
+    cdef GlobalRef ret = GlobalRef()
     ret.create(env, obj)
     return ret
-

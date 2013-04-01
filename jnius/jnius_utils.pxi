@@ -62,7 +62,7 @@ cdef void check_assignable_from(JNIEnv *env, JavaClass jc, bytes signature) exce
             raise JavaException('Unable to found the class for {0!r}'.format(
                 signature))
 
-        result = bool(env[0].IsAssignableFrom(env, jc.j_cls, cls))
+        result = bool(env[0].IsAssignableFrom(env, jc.j_cls.obj, cls))
         env[0].ExceptionClear(env)
         assignable_from[(jc.__javaclass__, signature)] = bool(result)
 
@@ -76,7 +76,7 @@ cdef bytes lookup_java_object_name(JNIEnv *j_env, jobject j_obj):
     cdef jclass jcls2 = j_env[0].GetObjectClass(j_env, jcls)
     cdef jmethodID jmeth = j_env[0].GetMethodID(j_env, jcls2, 'getName', '()Ljava/lang/String;')
     cdef jobject js = j_env[0].CallObjectMethod(j_env, jcls, jmeth)
-    name = convert_jobject_to_python(j_env, b'Ljava/lang/String;', js)
+    name = convert_jobject_to_python(b'Ljava/lang/String;', js)
     return name.replace('.', '/')
 
 

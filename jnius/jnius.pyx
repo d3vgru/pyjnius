@@ -103,7 +103,8 @@ ELSE:
 
 include "jnius_utils.pxi"
 include "jnius_conversion.pxi"
-include "jnius_localref.pxi"
+include "jnius_globalref.pxi"
+#include "jnius_localref.pxi"
 
 include "jnius_export_func.pxi"
 include "jnius_export_class.pxi"

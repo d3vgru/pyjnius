@@ -23,6 +23,7 @@ def find_javaclass(bytes name):
         raise JavaException('Class not found {0!r}'.format(name))
 
     cls = Class(noinstance=True)
-    cls.instanciate_from(create_local_ref(j_env, jc))
+    cls.instanciate_from(create_global_ref(j_env, jc))
+    
     return cls
 
