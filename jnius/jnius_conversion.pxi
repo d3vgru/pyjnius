@@ -318,8 +318,7 @@ cdef jobject convert_python_to_jobject(definition, obj) except *:
             pc = obj
             # get the java class
             jc = pc.j_self
-            # get the localref
-            # FIXME this is actually a global ref
+            # get the globalref
             return jc.j_self.obj
         elif isinstance(obj, (tuple, list)):
             return convert_pyarray_to_java(definition, obj)
@@ -344,8 +343,9 @@ cdef jobject convert_python_to_jobject(definition, obj) except *:
                     item_definition, item)
             j_env[0].SetObjectArrayElement(j_env, retobject, index,
                     retsubobject)
-        # FIXME adding global refs
-        return j_env[0].NewGlobalRef(j_env, retobject)
+        # FIXME adding global refs?
+        #return j_env[0].NewGlobalRef(j_env, retobject)
+        return retobject
 
     elif definition == 'B':
         retclass = j_env[0].FindClass(j_env, 'java/lang/Byte')
@@ -384,8 +384,9 @@ cdef jobject convert_python_to_jobject(definition, obj) except *:
 
     assert(retclass != NULL)
     # XXX do we need a globalref or something ?
-    # FIXME testing
-    retobject = j_env[0].NewGlobalRef(j_env, j_env[0].NewObjectA(j_env, retclass, retmidinit, j_ret))
+    # FIXME testing?
+    #retobject = j_env[0].NewGlobalRef(j_env, j_env[0].NewObjectA(j_env, retclass, retmidinit, j_ret))
+    retobject = j_env[0].NewObjectA(j_env, retclass, retmidinit, j_ret)
     return retobject
 
 
@@ -518,5 +519,6 @@ cdef jobject convert_pyarray_to_java(definition, pyarray) except *:
     else:
         raise JavaException('Invalid array definition', definition, pyarray)
 
-    # FIXME adding global refs
-    return j_env[0].NewGlobalRef(j_env, <jobject>ret)
+    # FIXME adding global refs?
+    #return j_env[0].NewGlobalRef(j_env, <jobject>ret)
+    return <jobject>ret

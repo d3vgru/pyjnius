@@ -86,7 +86,6 @@ cdef jobject invoke0(JNIEnv *j_env, jobject j_this, jobject j_proxy, jobject
 
     # extract the method information
     cdef JavaClass method = Method(noinstance=True)
-    # FIXME do we need explicit release?
     cdef GlobalRef ref = create_global_ref(j_env, j_method)
     method.instanciate_from(ref)
     ret_signature = get_signature(method.getReturnType())
@@ -137,7 +136,6 @@ cdef jobject invoke0(JNIEnv *j_env, jobject j_this, jobject j_proxy, jobject
         jtype = ret_signature
 
     try:
-        # FIXME testing global refs -- how to release?
         return convert_python_to_jobject(jtype or ret_signature, ret)
     except Exception as e:
         traceback.print_exc(e)

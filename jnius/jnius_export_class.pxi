@@ -668,8 +668,8 @@ cdef class JavaMethod(object):
             raise Exception('Invalid return definition?')
 
         check_exception(my_jni)
-        # FIXME add global ref?
-        # already a Python object...
+        # add global ref?
+        # no, already a Python object...
         return ret
 
     cdef call_staticmethod(self, jvalue *j_args):
@@ -746,8 +746,8 @@ cdef class JavaMethod(object):
             raise Exception('Invalid return definition?')
 
         check_exception(my_jni)
-        # FIXME add global ref?
-        # already a Python object...
+        # add global ref?
+        # no, already a Python object...
         return ret
 
 
@@ -834,7 +834,7 @@ cdef class JavaMultipleMethod(object):
         jm = methods[signature]
         jm.j_self = self.j_self
         
-        # FIXME global refs handled by JavaMethod?
+        # global refs handled by JavaMethod
         return jm.__call__(*args)
 
 
