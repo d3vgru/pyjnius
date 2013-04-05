@@ -39,7 +39,7 @@ except ImportError:
     files = [fn[:-3] + 'c' for fn in files if fn.endswith('pyx')]
 
 if platform == 'android':
-    # for android, we use SDL...
+    # for android, we use the minimal bootstrap...
     libraries = ['minimal_main', 'log']
     library_dirs = ['libs/' + environ['ARCH']]
 elif platform == 'darwin':
