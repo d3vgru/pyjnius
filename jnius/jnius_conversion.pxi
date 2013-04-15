@@ -114,6 +114,7 @@ cdef convert_jobject_to_python(bytes definition, jobject j_object):
         r = lookup_java_object_name(j_env, j_object)
 
     # if we got a string, just convert back to Python str.
+    # FIXME should this be unicode?
     if r == 'java/lang/String':
         c_str = <char *>j_env[0].GetStringUTFChars(j_env, j_object, NULL)
         py_str = <bytes>c_str
@@ -296,6 +297,7 @@ cdef jobject convert_python_to_jobject(definition, obj) except *:
             return NULL
         elif isinstance(obj, basestring) and \
                 definition in ('Ljava/lang/String;', 'Ljava/lang/Object;'):
+                # FIXME should we encode the string instead of casting?
             return j_env[0].NewStringUTF(j_env, <char *><bytes>obj)
         elif isinstance(obj, (int, long)) and \
                 definition in (
@@ -341,6 +343,7 @@ cdef jobject convert_python_to_jobject(definition, obj) except *:
             bool: 'Z',
             long: 'J',
             float: 'F',
+            # FIXME should this be unicode?
             basestring: 'Ljava/lang/String;',
         }
         retclass = j_env[0].FindClass(j_env, 'java/lang/Object')
@@ -426,6 +429,7 @@ cdef jobject convert_pyarray_to_java(definition, pyarray) except *:
             bool: 'Z',
             long: 'J',
             float: 'F',
+            # FIXME should this be unicode?
             basestring: 'Ljava/lang/String;',
         }
         for type, override in conversions.iteritems():
@@ -504,6 +508,7 @@ cdef jobject convert_pyarray_to_java(definition, pyarray) except *:
                         j_env, <jobjectArray>ret, i, NULL)
             elif isinstance(arg, basestring) and \
                     definition in ('Ljava/lang/String;', 'Ljava/lang/Object;'):
+                # FIXME should we encode the string instead of casting?
                 j_string = j_env[0].NewStringUTF(
                         j_env, <bytes>arg)
                 j_env[0].SetObjectArrayElement(
