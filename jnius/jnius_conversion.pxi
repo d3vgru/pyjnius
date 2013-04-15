@@ -318,8 +318,7 @@ cdef jobject convert_python_to_jobject(definition, obj) except *:
             pc = obj
             # get the java class
             jc = pc.j_self
-            # get the localref
-            # FIXME this is actually a global ref
+            # get the globalref
             return jc.j_self.obj
         elif isinstance(obj, (tuple, list)):
             return convert_pyarray_to_java(definition, obj)
