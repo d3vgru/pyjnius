@@ -26,6 +26,7 @@ cdef void populate_args(tuple definition_args, jvalue *j_args, args) except *:
     cdef JavaClass jc
     cdef PythonJavaClass pc
     cdef int index
+    cdef char* c_str
     for index, argtype in enumerate(definition_args):
         py_arg = args[index]
         if argtype == 'Z':
@@ -49,8 +50,15 @@ cdef void populate_args(tuple definition_args, jvalue *j_args, args) except *:
                 j_args[index].l = NULL
             elif isinstance(py_arg, basestring) and \
                     argtype in ('Ljava/lang/String;', 'Ljava/lang/Object;'):
+                # Unicode fix: c_str was: <char *><bytes>py_arg
+                if isinstance(py_arg, unicode):
+                    py_str = py_arg.encode('UTF-8')
+                    c_str = py_str
+                else:
+                    py_str = py_arg
+                    c_str = py_str
                 j_args[index].l = j_env[0].NewStringUTF(
-                        j_env, <char *><bytes>py_arg)
+                        j_env, c_str)
             elif isinstance(py_arg, JavaClass):
                 jc = py_arg
                 check_assignable_from(j_env, jc, argtype[1:-1])
@@ -505,6 +513,7 @@ cdef jobject convert_pyarray_to_java(definition, pyarray) except *:
                 check_assignable_from(j_env, jc, definition[1:-1])
                 j_env[0].SetObjectArrayElement(
                         j_env, <jobjectArray>ret, i, jc.j_self.obj)
+            # FIXME where does type come from?
             elif isinstance(arg, type):
                 jc = arg
                 j_env[0].SetObjectArrayElement(
