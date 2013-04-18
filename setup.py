@@ -10,7 +10,7 @@ files = [
     'jnius_export_func.pxi',
     'jnius_jvm_android.pxi',
     'jnius_jvm_desktop.pxi',
-    'jnius_localref.pxi',
+    'jnius_globalref.pxi',
     'jnius.pyx',
     'jnius_utils.pxi',
 ]
